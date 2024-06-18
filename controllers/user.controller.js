@@ -144,7 +144,6 @@ const topCharts=async(req,res,next)=>{
         api.initalize() // Retrieves Innertube Config
         .then(info => {
             api.getPlaylist(playlists[0].playlistId).then(result=>{
-                console.log(result.content[0]);
                 res.status(200).json(result.content);
             });
         })
