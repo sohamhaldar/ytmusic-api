@@ -114,7 +114,7 @@ const playSong=async(req,res,next)=>{
         start,end
     }}).pipe(res);
   
-}).catch((err) => {
+}).catch((error) => {
     if (error instanceof ApiError) {
         res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message));
     }else{
