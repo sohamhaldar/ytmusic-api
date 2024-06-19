@@ -92,7 +92,7 @@ const loginUser=async(req,res,next)=>{
 }
 
 const playSong=async(req,res,next)=>{
-    const {videoId}=req.body;
+    const {videoId}=req.params;
     const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
     ytdl.getInfo(videoUrl).then((info) => {
     const range = req.headers.range;
