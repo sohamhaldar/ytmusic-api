@@ -125,9 +125,24 @@ const playSong=async(req,res,next)=>{
 
 const currentSongDetail=async(req,res,next)=>{
     try {
-        const{videoId}=req.body;
+        const{videoId,baseUrl}=req.body;
         const suggestions = await getSuggestions(videoId);
-        res.status(200).json(suggestions);
+        const result=[];
+        suggestions.map((item)=>{
+            const author = item.artists.map(i => i.name).join(', ');
+            const r={
+                videoId:item.youtubeId,
+                url: `${baseUrl}/${item.youtubeId}`,
+                title: item.title,
+                artist: author,
+                artists:item.artists,
+                album: item.album,
+                artwork: item.thumbnailUrl, // Load artwork from the network
+                duration: item.duration.totalSeconds// Duration in seconds
+            }
+            result.push(r);
+        })
+        res.status(200).json(result);
         
     } catch (error) {
         if (error instanceof ApiError) {
