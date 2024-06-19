@@ -7,7 +7,7 @@ router.post('/login',loginUser);
 router.post('/register',registerUser);
 router.post('/topchart',topCharts);
 router.post('/current',currentSongDetail);
-router.post('/play/:videoId',playSong);
+router.get('/play/:videoId',playSong);
 router.post('/trending',trending);
 router.post('/search',searchSong);
 
