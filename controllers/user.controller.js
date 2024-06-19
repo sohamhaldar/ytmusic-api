@@ -135,6 +135,29 @@ const currentSongDetail=async(req,res,next)=>{
         }
     }
 }
+const searchSong=async(req,res,next)=>{
+    try {
+        const{search,type}=req.body;
+        const searchType={
+            song:searchMusics(search),
+            artist:searchArtists(search),
+            album:searchAlbums(search),
+            playlist:searchPlaylists(search),
+        }
+        const results = await searchType[type];
+        res.status(200).json({
+            type,
+            music:results
+        });
+        
+    } catch (error) {
+        if (error instanceof ApiError) {
+            res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message));
+        }else{
+            res.status(500).json(new ApiResponse(500, "Something went wrong"));
+        }
+    }
+}
 
 const topCharts=async(req,res,next)=>{
     try{
@@ -180,5 +203,5 @@ const trending=async(req,res,next)=>{
 }
 
 export {
-    registerUser,loginUser,playSong,currentSongDetail,topCharts,trending
+    registerUser,loginUser,playSong,currentSongDetail,topCharts,trending,searchSong
 }
