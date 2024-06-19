@@ -132,7 +132,7 @@ const currentSongDetail=async(req,res,next)=>{
             const author = item.artists.map(i => i.name).join(', ');
             const r={
                 videoId:item.youtubeId,
-                url: `${baseUrl}/${item.youtubeId}`,
+                url: `${baseUrl}/play/${item.youtubeId}`,
                 title: item.title,
                 artist: author,
                 artists:item.artists,
