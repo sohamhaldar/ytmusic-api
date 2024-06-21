@@ -93,10 +93,12 @@ const loginUser=async(req,res,next)=>{
 
 const playSong=async(req,res,next)=>{
     const {videoId}=req.params;
+    console.log(videoId);
     const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
     ytdl.getInfo(videoUrl).then((info) => {
     const range = req.headers.range;
     const format = ytdl.chooseFormat(info.formats,{quality:'highestaudio'});
+    console.log('format:-',format.audioCodec); 
     const chunkSize=10**6;
     const start = Number(range.replace(/\D/g, "")); 
     const videoSize=format.contentLength;
@@ -106,13 +108,13 @@ const playSong=async(req,res,next)=>{
             "Content-Range": `bytes ${start}-${end}/${videoSize}`,
             "Accept-Ranges": 'bytes',
             "Content-Length": contentLength,
-            "Content-Type": "video/webm"
+            "Content-Type": `audio/${format.audioCodec}`
         }
     res.writeHead(206,headers);
 
     ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
         start,end
-    }}).pipe(res);
+    },filter:"audioonly"}).pipe(res);
   
 }).catch((error) => {
     if (error instanceof ApiError) {
@@ -134,6 +136,9 @@ const currentSongDetail=async(req,res,next)=>{
                 videoId:item.youtubeId,
                 url: `${baseUrl}/play/${item.youtubeId}`,
                 title: item.title,
+                headers: {
+                    'range': 'bytes=0-'
+                  },
                 artist: author,
                 artists:item.artists,
                 album: item.album,
