@@ -10,5 +10,9 @@ router.post('/current',currentSongDetail);
 router.get('/play/:videoId',playSong);
 router.post('/trending',trending);
 router.post('/search',searchSong);
+router.post('/search',searchSong);
+router.get('/health',(req,res)=>{
+    res.json("Working fine ")
+});
 
 export default router;
