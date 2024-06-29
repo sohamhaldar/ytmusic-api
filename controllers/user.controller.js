@@ -99,22 +99,23 @@ const playSong=async(req,res,next)=>{
     const range = req.headers.range;
     const format = ytdl.chooseFormat(info.formats,{quality:'highestaudio'});
     console.log('format:-',format.audioCodec); 
-    const chunkSize=10**6;
-    const start = Number(range.replace(/\D/g, "")); 
-    const videoSize=format.contentLength;
-    const end = Math.min(start + chunkSize , videoSize-1);
-    const contentLength = end-start+1;
-    const headers = {
-            "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-            "Accept-Ranges": 'bytes',
-            "Content-Length": contentLength,
-            "Content-Type": `audio/${format.audioCodec}`
-        }
-    res.writeHead(206,headers);
+    res.status(301).redirect(format.url);
+    // const chunkSize=10**6;
+    // const start = Number(range.replace(/\D/g, "")); 
+    // const videoSize=format.contentLength;
+    // const end = Math.min(start + chunkSize , videoSize-1);
+    // const contentLength = end-start+1;
+    // const headers = {
+    //         "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+    //         "Accept-Ranges": 'bytes',
+    //         "Content-Length": contentLength,
+    //         "Content-Type": `audio/${format.audioCodec}`
+    //     }
+    // res.writeHead(206,headers);
 
-    ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
-        start,end
-    },filter:"audioonly"}).pipe(res);
+    // ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
+    //     start,end
+    // },filter:"audioonly"}).pipe(res);
   
 }).catch((error) => {
     if (error instanceof ApiError) {
@@ -223,6 +224,8 @@ const trending=async(req,res,next)=>{
         }
     }
 }
+
+
 
 export {
     registerUser,loginUser,playSong,currentSongDetail,topCharts,trending,searchSong
