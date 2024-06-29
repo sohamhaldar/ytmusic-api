@@ -13,7 +13,7 @@ import {
   } from 'node-youtube-music';
 import ytdl from "ytdl-core";
 import YoutubeMusicApi from 'youtube-music-api';
-
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const registerUser=async(req,res,next)=>{
     try {
@@ -95,31 +95,36 @@ const playSong=async(req,res,next)=>{
     const {videoId}=req.params;
     console.log(videoId);
     const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
-    ytdl.getInfo(videoUrl).then((info) => {
+    console.log(req.connection.remoteAddress);
+    const agent = new HttpsProxyAgent(req.connection.remoteAddress);
+    console.log(agent);
+    ytdl.getInfo(videoUrl,{
+        requestOptions:agent,
+    }).then((info) => {
     const range = req.headers.range;
     const format = ytdl.chooseFormat(info.formats,{quality:'highestaudio'});
     console.log('format:-',format.audioCodec);
-    // res.status(301).redirect(format.url);
-    const chunkSize=10**6;
-    const start = Number(range.replace(/\D/g, "")); 
-    const videoSize=format.contentLength;
-    const end = Math.min(start + chunkSize , videoSize-1);
-    const contentLength = end-start+1;
-    const headers = {
-            "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-            "Accept-Ranges": 'bytes',
-            "Content-Length": contentLength,
-            "Content-Type": `audio/${format.audioCodec}`
-        }
-    res.writeHead(206,headers);
+    res.status(301).redirect(format.url);
+    // const chunkSize=10**6;
+    // const start = Number(range.replace(/\D/g, "")); 
+    // const videoSize=format.contentLength;
+    // const end = Math.min(start + chunkSize , videoSize-1);
+    // const contentLength = end-start+1;
+    // const headers = {
+    //         "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+    //         "Accept-Ranges": 'bytes',
+    //         "Content-Length": contentLength,
+    //         "Content-Type": `audio/${format.audioCodec}`
+    //     }
+    // res.writeHead(206,headers);
 
-    ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
-        start,end
-    },filter:"audioonly"}).pipe(res);
+    // ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
+    //     start,end
+    // },filter:"audioonly"}).pipe(res);
   
 }).catch((error) => {
     if (error instanceof ApiError) {
-        res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message));
+        res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message)); 
     }else{
         res.status(500).json(new ApiResponse(500, "Something went wrong"));
     }
