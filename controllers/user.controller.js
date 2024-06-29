@@ -14,6 +14,7 @@ import {
 import ytdl from "ytdl-core";
 import YoutubeMusicApi from 'youtube-music-api';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import ip from 'ip';
 
 const registerUser=async(req,res,next)=>{
     try {
@@ -91,12 +92,16 @@ const loginUser=async(req,res,next)=>{
     }
 }
 
+// const express = require('express')const app = express()const port = 3000const IP = require('ip');app.get('/', (req, res) => {    const ipAddress = IP.address();    res.send(ipAddress)})app.listen(port, () => {  console.log(`Example app listening on port ${port}`)})
+
 const playSong=async(req,res,next)=>{
     const {videoId}=req.params;
     console.log(videoId);
     const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
-    console.log(req.connection.remoteAddress);
-    const agent = new HttpsProxyAgent(req.connection.remoteAddress);
+    const reqconnection=req.connection.remotePort;
+    console.log(ip.address())
+    console.log(reqconnection);
+    const agent = new HttpsProxyAgent(`http://${ip.address()}:${reqconnection}`);
     console.log(agent);
     ytdl.getInfo(videoUrl,{
         requestOptions:agent,
