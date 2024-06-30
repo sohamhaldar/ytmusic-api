@@ -20,6 +20,11 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
 app.use('/',userRouter);
+app.use('/fine',(req,res)=>{
+    res.json({
+        msg:'working fine'
+    })
+})
 
 app.listen(process.env.PORT||8000,()=>{
     console.log(`server connected at PORT:${process.env.PORT}`);
