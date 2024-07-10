@@ -138,7 +138,11 @@ const streamAudio = async (audioUrl, req, res,audioCodec) => {
         };
 
         if (range) {
-            const [start, end] = range.replace(/bytes=/, '').split('-');
+            const parts = range.replace(/bytes=/, '').split('-');
+            const start = parseInt(parts[0], 10);
+            const chunkSize = 1 * 1024 * 1024; // 1 MB
+            const end = parts[1] ? parseInt(parts[1], 10) : start + chunkSize - 1;
+
             headers['Range'] = `bytes=${start}-${end}`;
         }
 
