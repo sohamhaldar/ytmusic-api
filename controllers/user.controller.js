@@ -13,8 +13,45 @@ import {
   } from 'node-youtube-music';
 import ytdl from "ytdl-core";
 import YoutubeMusicApi from 'youtube-music-api';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import ip from 'ip';
+import https from 'https';
+import {Readable} from 'stream';
+import {finished,pipeline} from 'stream/promises';
+import axios from 'axios';
+
+async function getInfo(videoId) {
+    const apiKey = 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc'
+    const headers = {
+      'X-YouTube-Client-Name': '3',
+      'X-YouTube-Client-Version': '19.09.37',
+      Origin: 'https://www.youtube.com',
+      'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
+      'content-type': 'application/json'
+    }
+  
+    const b = {
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '19.09.37',
+          androidSdkVersion: 30,
+          userAgent: 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
+          hl: 'en',
+          timeZone: 'UTC',
+          utcOffsetMinutes: 0
+        }
+      },
+      videoId,
+      playbackContext: { contentPlaybackContext: { html5Preference: 'HTML5_PREF_WANTS' } },
+      contentCheckOk: true,
+      racyCheckOk: true
+    }
+  
+    const res = await fetch(`https://www.youtube.com/youtubei/v1/player?key${apiKey}&prettyPrint=false`, { method: 'POST', body: JSON.stringify(b), headers });
+    if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const json = await res.json();
+    return json;
+  } 
+
 
 const registerUser=async(req,res,next)=>{
     try {
@@ -92,46 +129,125 @@ const loginUser=async(req,res,next)=>{
     }
 }
 
-// const express = require('express')const app = express()const port = 3000const IP = require('ip');app.get('/', (req, res) => {    const ipAddress = IP.address();    res.send(ipAddress)})app.listen(port, () => {  console.log(`Example app listening on port ${port}`)})
+const streamAudio = async (audioUrl, req, res,audioCodec) => {
+    try {
+        const range = req.headers.range;
+
+        let headers = {
+            'Content-Type': 'audio/mp4'
+        };
+
+        if (range) {
+            const [start, end] = range.replace(/bytes=/, '').split('-');
+            headers['Range'] = `bytes=${start}-${end}`;
+        }
+
+        const response = await axios({
+            method: 'get',
+            url: audioUrl,
+            responseType: 'stream',
+            headers: headers
+        });
+
+        res.setHeader('Content-Type', audioCodec||'audio/mp4');
+
+        if (range) {
+            res.setHeader('Content-Range', response.headers['content-range']);
+            res.setHeader('Accept-Ranges', 'bytes');
+            res.setHeader('Content-Length', response.headers['content-length']);
+            res.status(206); // Partial Content
+        }
+
+        response.data.pipe(res);
+    } catch (err) {
+        console.error('Error streaming audio:', err);
+        res.status(500).send('Failed to stream audio');
+    }
+};
+
+
 
 const playSong=async(req,res,next)=>{
-    const {videoId}=req.params;
-    console.log(videoId);
-    const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
-    // const reqconnection=req.connection.remotePort;
-    // console.log(ip.address())
-    // console.log(reqconnection);
-    // const agent = new HttpsProxyAgent(`http://${ip.address()}:${reqconnection}`);
-    // console.log(agent);
-    ytdl.getInfo(videoUrl).then((info) => {
-    const range = req.headers.range;
-    const format = ytdl.chooseFormat(info.formats,{quality:'highestaudio'});
-    console.log('format:-',format.audioCodec);
-    // res.status(301).redirect(format.url);
-    const chunkSize=10**6;
-    const start = Number(range.replace(/\D/g, "")); 
-    const videoSize=format.contentLength;
-    const end = Math.min(start + chunkSize , videoSize-1);
-    const contentLength = end-start+1;
-    const headers = {
-            "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-            "Accept-Ranges": 'bytes',
-            "Content-Length": contentLength,
-            "Content-Type": `audio/${format.audioCodec}`
-        }
-    res.writeHead(206,headers);
+    try {
+        const { videoId } = req.params;
+        console.log(videoId);
 
-    ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
-        start,end
-    },filter:"audioonly"}).pipe(res);
+        // Here you fetch the desired audio URL, adjust as per your logic
+        const info = await getInfo(videoId);
+        if (info.playabilityStatus.status !== 'OK') {
+            throw new Error(info.playabilityStatus.reason);
+        }
+
+        const formats = info.streamingData.adaptiveFormats;
+        const audio = formats.filter(f => f.mimeType.match(/^audio\/\w+/));
+        const desired = audio.find(i => i.audioQuality === 'AUDIO_QUALITY_MEDIUM');
+        
+        const audioCodec=desired.mimeType.split(';')[0];
+        console.log(audioCodec);
+
+        if (!desired) {
+            throw new Error('Desired audio format not found');
+        }
+
+        // Stream the audio directly to the client
+        await streamAudio(desired.url, req, res,audioCodec);
+    }    
+    // const videoUrl = `https://music.youtube.com/watch?v=${videoId}`;
+    // ytdl.getInfo(videoUrl).then((info) => {
+    // const range = req.headers.range;
+    // const format = ytdl.chooseFormat(info.formats,{quality:'highestaudio'});
+    // console.log('format:-',format.audioCodec);
+    // const chunkSize=10**6;
+    // const start = Number(range.replace(/\D/g, "")); 
+    // const videoSize=format.contentLength;
+    // const end = Math.min(start + chunkSize , videoSize-1);
+    // const contentLength = end-start+1;
+    // const headers = {
+    //         "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+    //         "Accept-Ranges": 'bytes',
+    //         "Content-Length": contentLength,
+    //         "Content-Type": `audio/${format.audioCodec}`
+    //     }
+    // res.writeHead(206,headers);
+
+    // ytdl.downloadFromInfo(info, { format: format,dlChunkSize:chunkSize ,range:{
+    //     start,end
+    // },filter:"audioonly"}).pipe(res);
+
   
-}).catch((error) => {
-    if (error instanceof ApiError) {
-        res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message)); 
-    }else{
-        res.status(500).json(new ApiResponse(500, "Something went wrong"));
+// }).catch(async() => {
+    // try {
+    //     console.log('entering')
+    //     const info = await getInfo(videoId);
+    //     if(info.playabilityStatus.status !== 'OK') throw new Error(info.playabilityStatus.reason);
+    //     const formats = info.streamingData.adaptiveFormats;
+    //     const audio = formats.filter(f => f.mimeType.match(/^audio\/\w+/));
+    //     const desired=audio.filter((i)=>i.audioQuality=='AUDIO_QUALITY_MEDIUM')[0];
+    //     const res = await fetch(desired.url);
+    //     if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    //     const chunkSize=10**6;
+    //     const start = Number(range.replace(/\D/g, "")); 
+    //     const videoSize=desired.contentLength;
+    //     const end = Math.min(start + chunkSize , videoSize-1);
+    //     const contentLength = end-start+1;
+    //     const headers = {
+    //         "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+    //         "Accept-Ranges": 'bytes',
+    //         "Content-Length": contentLength,
+    //         "Content-Type": desired.mimeType
+    //     }
+    // res.writeHead(206,headers);
+    //     await finished(Readable.fromWeb(res.body).pipe(res));
+    // } 
+    catch (error) {
+        if (error instanceof ApiError) {
+            res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message)); 
+        }else{
+            res.status(500).json(new ApiResponse(500, "Something went wrong"));
+        }
     }
-});    
+    
+// });    
 }
 
 const currentSongDetail=async(req,res,next)=>{
