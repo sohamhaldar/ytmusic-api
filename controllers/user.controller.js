@@ -247,7 +247,7 @@ const playSong=async(req,res,next)=>{
         if (error instanceof ApiError) {
             res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message)); 
         }else{
-            res.status(500).json(new ApiResponse(500, "Something went wrong"));
+            res.status(500).json(new ApiResponse(500, "Something went wrong",error));
         }
     }
     
