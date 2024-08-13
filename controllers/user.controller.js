@@ -244,6 +244,7 @@ const playSong=async(req,res,next)=>{
     //     await finished(Readable.fromWeb(res.body).pipe(res));
     // } 
     catch (error) {
+        console.log(error);
         if (error instanceof ApiError) {
             res.status(error.statusCode).json(new ApiResponse(error.statusCode, error.message)); 
         }else{
