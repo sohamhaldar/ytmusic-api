@@ -17,16 +17,19 @@ import https from 'https';
 import {Readable} from 'stream';
 import {finished,pipeline} from 'stream/promises';
 import axios from 'axios';
+const axiosInstance = axios.create();
+let lastRequestTime = 0;
 
 async function getInfo(videoId) {
     const apiKey = 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc'
     const headers = {
-      'X-YouTube-Client-Name': '3',
-      'X-YouTube-Client-Version': '19.09.37',
-      Origin: 'https://www.youtube.com',
-      'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-      'content-type': 'application/json'
-    }
+        'X-YouTube-Client-Name': '3',
+        'X-YouTube-Client-Version': '19.09.37',
+        'Origin': 'https://www.youtube.com',
+        'User-Agent': 'com.google.android.youtube/21.12.33 (Linux; U; Android 12) gzip',
+        'content-type': 'application/json'
+      };
+      
   
     const b = {
       context: {
@@ -38,6 +41,7 @@ async function getInfo(videoId) {
           hl: 'en',
           timeZone: 'UTC',
           utcOffsetMinutes: 0
+          
         }
       },
       videoId,
